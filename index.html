@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI防诈勇士历险记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #0a0a1a;
+            color: #e0e0ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(2px 2px at 20px 30px, #2a2a5a 50%, transparent 50%),
+                radial-gradient(2px 2px at 40px 70px, #2a2a5a 50%, transparent 50%),
+                radial-gradient(2px 2px at 60px 20px, #2a2a5a 50%, transparent 50%);
+            background-size: 100px 100px;
+        }
+
+        /* 初始界面样式 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #0a0a2a, #00001a);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+
+        .start-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-title {
+            font-size: 2.5em; /* 减小字体大小 */
+            color: #ffcc00;
+            text-shadow: 
+                4px 4px 0 #aa5500,
+                8px 8px 0 #000,
+                0 0 20px rgba(255, 204, 0, 0.5);
+            margin-bottom: 30px; /* 增加底部边距，使标题位置下移 */
+            letter-spacing: 4px;
+            animation: titleGlow 3s infinite alternate;
+        }
+
+
+        .game-subtitle {
+            font-size: 1.5em;
+            color: #aaaaff;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .game-rules {
+            background-color: rgba(20, 20, 50, 0.8);
+            border: 3px solid #4a4aff;
+            padding: 25px;
+            margin-bottom: 40px;
+            max-width: 600px;
+            border-radius: 10px;
+        }
+
+        .rules-title {
+            color: #00ffaa;
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .rules-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .rules-list li {
+            margin-bottom: 10px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .rules-list li:before {
+            content: "★";
+            color: #ffcc00;
+            position: absolute;
+            left: 0;
+        }
+
+        .start-btn {
+            padding: 20px 50px;
+            font-size: 1.8em;
+            background: linear-gradient(45deg, #ff9900, #ffcc00);
+            color: #000;
+            border: 4px solid #aa5500;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(255, 153, 0, 0.5);
+            background: linear-gradient(45deg, #ffcc00, #ff9900);
+        }
+
+        /* 游戏主界面 */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            display: none;
+        }
+
+        .container.visible {
+            display: block;
+            animation: fadeIn 1s ease;
+        }
+
+        .pixel-border {
+            border: 6px solid #4a4aff;
+            border-image: repeating-linear-gradient(45deg, #4a4aff, #4a4aff 10px, #2a2a5a 10px, #2a2a5a 20px) 6;
+            padding: 25px;
+            background-color: rgba(10, 10, 30, 0.95);
+            box-shadow: 
+                0 0 30px rgba(74, 74, 255, 0.4),
+                inset 0 0 30px rgba(74, 74, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 4px solid #4a4aff;
+            position: relative;
+        }
+
+        .header:after {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            left: 25%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ffcc00, transparent);
+        }
+
+        .pixel-title {
+            font-size: 2.8em;
+            color: #ffcc00;
+            text-shadow: 4px 4px 0 #aa5500, 7px 7px 0 #000;
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        .subtitle {
+            color: #aaaaff;
+            font-size: 1.3em;
+            margin-bottom: 20px;
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .game-area {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 地图容器 */
+        .map-container {
+            position: relative;
+            height: 450px;
+            background: linear-gradient(135deg, #1a1a3a, #0a0a2a);
+            border: 4px solid #3a3a8a;
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .path {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: #ffcc00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 
+                0 0 10px #ffcc00,
+                inset 0 0 10px #ff9900;
+            z-index: 5;
+        }
+
+        .path:nth-child(1) { top: 15%; left: 15%; }
+        .path:nth-child(2) { top: 15%; left: 35%; }
+        .path:nth-child(3) { top: 35%; left: 35%; }
+        .path:nth-child(4) { top: 35%; left: 55%; }
+        .path:nth-child(5) { top: 55%; left: 55%; }
+        .path:nth-child(6) { top: 55%; left: 75%; }
+        .path:nth-child(7) { top: 75%; left: 75%; }
+
+        .path-line {
+            position: absolute;
+            background-color: #ffcc00;
+            z-index: 2;
+            transform-origin: 0 0;
+        }
+
+        .castle {
+            position: absolute;
+            bottom: 15%;
+            right: 10%;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #8b4513, #a0522d);
+            border: 4px solid #654321;
+            border-radius: 10px 10px 0 0;
+            box-shadow: 
+                0 0 20px rgba(255, 204, 0, 0.5),
+                inset 0 0 20px rgba(139, 69, 19, 0.5);
+        }
+
+        .castle:before {
+            content: "";
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #c04000, #8b4513);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .warrior {
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 35px;
+            height: 45px;
+            background: linear-gradient(45deg, #1e90ff, #00bfff);
+            clip-path: polygon(50% 0%, 20% 100%, 80% 100%);
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+            filter: drop-shadow(0 0 5px #1e90ff);
+        }
+
+        .warrior:after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 10px;
+            width: 15px;
+            height: 8px;
+            background-color: #8b4513;
+            border-radius: 50%;
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            background-color: rgba(20, 20, 50, 0.9);
+            padding: 25px;
+            border: 3px solid #4a4aff;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: rgba(42, 42, 90, 0.6);
+            border: 2px solid #4a4aff;
+            border-radius: 5px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+        }
+
+        .stat-label {
+            color: #aaaaff;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #00ffaa;
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffaa;
+        }
+
+        .question-box {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .level {
+            font-size: 1.8em;
+            color: #00ffaa;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 10px #00ffaa;
+        }
+
+        .question {
+            color: #ffffff;
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            min-height: 100px;
+            padding: 15px;
+            background-color: rgba(30, 30, 70, 0.7);
+            border-radius: 5px;
+            border-left: 4px solid #4a4aff;
+        }
+
+        .options {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background-color: #2a2a6a;
+            color: #e0e0ff;
+            border: 2px solid #4a4aff;
+            padding: 15px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: #3a3a8a;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(74, 74, 255, 0.4);
+        }
+
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .option-btn.correct {
+            background-color: #006400;
+            border-color: #00ff00;
+            animation: correctPulse 0.5s ease;
+        }
+
+        .option-btn.wrong {
+            background-color: #8b0000;
+            border-color: #ff4444;
+            animation: wrongShake 0.5s ease;
+        }
+
+        /* 错误反馈区域 */
+        .feedback {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: rgba(42, 42, 90, 0.9);
+            border: 2px solid #ff4444;
+            border-radius: 5px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct {
+            border-color: #00ff00;
+        }
+
+        .feedback-title {
+            color: #ff4444;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feedback.correct .feedback-title {
+            color: #00ff00;
+        }
+
+        .correct-answer {
+            color: #00ffaa;
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: rgba(0, 100, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .explanation {
+            color: #e0e0ff;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .primary-btn {
+            background: linear-gradient(45deg, #ff9900, #ffcc00);
+            color: #000;
+        }
+
+        .primary-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+        }
+
+        .secondary-btn {
+            background: linear-gradient(45deg, #4a4aff, #6a6aff);
+            color: #fff;
+        }
+
+        .secondary-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(74, 74, 255, 0.4);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 宝藏箱和卷轴 */
+        .treasure-box {
+            position: fixed;
+            bottom: -200px;
+            right: 50px;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(45deg, #ff9900, #cc7700);
+            border: 10px solid #aa5500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: bottom 2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 100;
+            border-radius: 10px;
+            box-shadow: 
+                0 0 30px rgba(255, 153, 0, 0.7),
+                inset 0 0 30px rgba(255, 204, 0, 0.3);
+        }
+
+        .treasure-box.open {
+            bottom: 50px;
+        }
+
+        .treasure-lid {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            width: 100%;
+            height: 25px;
+            background: linear-gradient(45deg, #cc7700, #aa5500);
+            border: 8px solid #aa5500;
+            transform-origin: top;
+            transition: transform 1s 2s;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .treasure-box.open .treasure-lid {
+            transform: rotateX(-120deg);
+        }
+
+        .treasure-content {
+            font-size: 4em;
+            animation: treasureGlow 2s infinite alternate;
+        }
+
+        .scroll {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 800px; /* 增加宽度 */
+            max-width: 95%;
+            height: 80vh; /* 增加高度为视口高度的80% */
+            background: linear-gradient(to bottom, #fff8e0, #ffe699);
+            border: 15px solid #8b4513;
+            padding: 40px 50px; /* 增加内边距 */
+            text-align: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 1s 3s;
+            border-radius: 10px;
+            box-shadow: 
+                0 0 50px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(139, 69, 19, 0.2);
+            overflow: hidden; /* 防止内容溢出 */
+        }
+
+        .scroll.open {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .scroll-content {
+            color: #4a2c0d;
+            font-family: 'SimSun', serif;
+            font-size: 1.3em; /* 增大字体大小 */
+            line-height: 1.8;
+            height: calc(100% - 80px); /* 设置高度为100%减去按钮区域高度 */
+            overflow-y: auto; /* 添加垂直滚动 */
+            padding-right: 10px; /* 为滚动条留出空间 */
+            margin-bottom: 20px;
+        }
+
+        /* 自定义滚动条样式 */
+        .scroll-content::-webkit-scrollbar {
+            width: 12px; /* 增加滚动条宽度 */
+        }
+
+        .scroll-content::-webkit-scrollbar-track {
+            background: #ffe699;
+            border-radius: 6px;
+        }
+
+        .scroll-content::-webkit-scrollbar-thumb {
+            background: #8b4513;
+            border-radius: 6px;
+        }
+
+        .scroll-content::-webkit-scrollbar-thumb:hover {
+            background: #a0522d;
+        }
+
+        .scroll-title {
+            color: #8b0000;
+            font-size: 1.8em; /* 增大标题字体大小 */
+            margin-bottom: 25px;
+            text-shadow: 2px 2px 0px rgba(139, 0, 0, 0.2);
+        }
+
+        .scroll-message {
+            margin-bottom: 25px;
+        }
+
+        .warning-list {
+            text-align: left;
+            margin: 25px 0;
+            padding-left: 30px;
+        }
+
+        .warning-list li {
+            margin-bottom: 15px; /* 增加列表项之间的间距 */
+        }
+
+        /* 添加按钮样式 */
+        .restart-btn {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background: linear-gradient(45deg, #ff9900, #ffcc00);
+            color: #000;
+            border: 3px solid #aa5500;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'SimSun', serif;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+            background: linear-gradient(45deg, #ffcc00, #ff9900);
+        }
+
+
+
+        /* 动画效果 */
+        @keyframes titleGlow {
+            0% { text-shadow: 4px 4px 0 #aa5500, 8px 8px 0 #000, 0 0 20px rgba(255, 204, 0, 0.5); }
+            100% { text-shadow: 4px 4px 0 #aa5500, 8px 8px 0 #000, 0 0 40px rgba(255, 204, 0, 0.8); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes treasureGlow {
+            0% { filter: drop-shadow(0 0 5px #ffcc00); }
+            100% { filter: drop-shadow(0 0 20px #ffcc00); }
+        }
+
+        @keyframes pathGlow {
+            0%, 100% { box-shadow: 0 0 10px #ffcc00, inset 0 0 10px #ff9900; }
+            50% { box-shadow: 0 0 25px #ffcc00, 0 0 35px #ffcc00, inset 0 0 15px #ff9900; }
+        }
+
+        .current-pos {
+            animation: pathGlow 2s infinite;
+        }
+
+        /* 像素效果 */
+        .pixel-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: overlay;
+            opacity: 0.1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 初始界面 -->
+    <div class="start-screen" id="start-screen">
+        <h1 class="game-title">AI防诈勇士历险记</h1>
+        <p class="game-subtitle">穿越迷雾重重的像素世界，识破AI换脸诈骗陷阱，赢取智慧宝藏！</p>
+        
+        <div class="game-rules">
+            <h2 class="rules-title">⚔️ 游戏规则 ⚔️</h2>
+            <ul class="rules-list">
+                <li>你将扮演一位勇敢的勇士，穿越5个关卡的挑战</li>
+                <li>每个关卡会随机出现一道关于AI换脸诈骗的单选题</li>
+                <li>答对问题才能前往下一关卡，答错需要重新挑战当前关卡</li>
+                <li>答错时会显示正确答案和详细解析，帮助你学习防诈知识</li>
+                <li>完成所有关卡后，将获得智慧宝藏和防诈卷轴</li>
+                <li>题库包含12道题目，每次游戏随机抽取5道</li>
+            </ul>
+        </div>
+        
+        <button class="start-btn" id="start-game-btn">开始冒险</button>
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div class="container" id="game-container">
+        <div class="pixel-border">
+            <div class="header">
+                <h1 class="pixel-title">AI防诈勇士历险记</h1>
+                <p class="subtitle">识破AI诈骗陷阱，守护数字世界安全</p>
+            </div>
+            
+            <div class="game-area">
+                <!-- 地图区域 -->
+                <div class="map-container">
+                    <!-- 路径点 -->
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    <div class="path"></div>
+                    
+                    <!-- 路径连接线 -->
+                    <div class="path-line" id="path-line-1" style="top: 15%; left: 15%; width: 20%; height: 4px; transform: rotate(0deg);"></div>
+                    <div class="path-line" id="path-line-2" style="top: 15%; left: 35%; width: 20%; height: 4px; transform: rotate(90deg);"></div>
+                    <div class="path-line" id="path-line-3" style="top: 35%; left: 35%; width: 20%; height: 4px; transform: rotate(0deg);"></div>
+                    <div class="path-line" id="path-line-4" style="top: 35%; left: 55%; width: 20%; height: 4px; transform: rotate(90deg);"></div>
+                    <div class="path-line" id="path-line-5" style="top: 55%; left: 55%; width: 20%; height: 4px; transform: rotate(0deg);"></div>
+                    <div class="path-line" id="path-line-6" style="top: 55%; left: 75%; width: 20%; height: 4px; transform: rotate(90deg);"></div>
+                    
+                    <!-- 勇士 -->
+                    <div class="warrior" id="warrior"></div>
+                    
+                    <!-- 城堡 -->
+                    <div class="castle"></div>
+                </div>
+                
+                <!-- 信息面板 -->
+                <div class="info-panel">
+                    <!-- 游戏统计 -->
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">当前关卡</div>
+                            <div class="stat-value" id="current-level">1/5</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">答对题目</div>
+                            <div class="stat-value" id="correct-count">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">剩余次数</div>
+                            <div class="stat-value" id="retry-count">3</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 问题区域 -->
+                    <div class="question-box">
+                        <div class="level">关卡 <span id="level-number">1</span> - 智慧挑战</div>
+                        <div class="question" id="question-text">准备迎接AI防诈挑战...</div>
+                        
+                        <!-- 选项区域 -->
+                        <div class="options" id="options-container">
+                            <!-- 选项将通过JavaScript动态生成 -->
+                        </div>
+                        
+                        <!-- 反馈区域 -->
+                        <div class="feedback" id="feedback-box">
+                            <div class="feedback-title">
+                                <span id="feedback-icon">❌</span>
+                                <span id="feedback-title-text">回答错误</span>
+                            </div>
+                            <div class="correct-answer" id="correct-answer-text"></div>
+                            <div class="explanation" id="explanation-text"></div>
+                            <div class="action-buttons">
+                                <button class="action-btn secondary-btn" id="retry-btn">再做一遍</button>
+                                <button class="action-btn primary-btn" id="next-btn" style="display: none;">下一关卡</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 宝藏箱 -->
+    <div class="treasure-box" id="treasure-box">
+        <div class="treasure-lid"></div>
+        <div class="treasure-content">💰</div>
+    </div>
+    
+    <!-- 通关卷轴 -->
+    <div class="scroll" id="scroll">
+        <div class="scroll-content">
+            <div class="scroll-title">🎉 智慧宝藏卷轴 🎉</div>
+            <div class="scroll-message">
+                <p>恭喜你，勇敢的智者！</p>
+                <p>你已成功通过所有AI防诈考验，</p>
+                <p>展现了卓越的网络安全意识！</p>
+            </div>
+            
+            <p><strong>在现实生活中请牢记：</strong></p>
+            <ul class="warning-list">
+                <li>视频通话中注意观察异常细节和口型同步</li>
+                <li>涉及转账务必通过多种方式验证对方身份</li>
+                <li>保护个人生物识别信息，不轻易提供</li>
+                <li>遇到可疑情况及时向警方举报</li>
+                <li>定期关注最新的防诈骗知识</li>
+            </ul>
+            
+            <p style="margin-top: 20px; font-weight: bold;">
+                智慧是最好的防诈武器，保持警惕，守护安全！
+            </p>
+        </div>
+        <button class="restart-btn" id="restart-btn">再次闯关</button>
+    </div>
+
+
+    <!-- 像素效果 -->
+    <div class="pixel-effect" id="pixel-effect"></div>
+
+    <script>
+        // 预加载音效
+        function preloadSounds() {
+            const soundFiles = ['begin.mp3', 'right.mp3', 'wrong.mp3', 'out.mp3', 'success.mp3'];
+            soundFiles.forEach(file => {
+                const audio = new Audio(file);
+                audio.preload = 'auto';
+            });
+        }
+        // 在页面加载完成后预加载音效
+        window.addEventListener('load', preloadSounds);
+
+        // 题库数据 - 12道单选题
+        const questionBank = [
+            {
+                id: 1,
+                question: "当陌生人通过视频通话要求你转账，声称是'亲友突发疾病'，以下哪种做法最正确？",
+                options: [
+                    "A. 立即转账救急",
+                    "B. 询问只有对方知道的私密问题验证身份",
+                    "C. 直接挂断电话",
+                    "D. 回复'好的，马上转'"
+                ],
+                answer: "B",
+                explanation: "应该先通过只有亲友知道的私密问题验证对方身份，这是防范AI换脸诈骗的重要步骤。直接转账或挂断都不是最佳选择。"
+            },
+            {
+                id: 2,
+                question: "AI换脸技术最可能被用于哪种诈骗场景？",
+                options: [
+                    "A. 冒充亲友视频借钱",
+                    "B. 伪造中奖短信",
+                    "C. 虚假购物网站",
+                    "D. 投资理财诈骗"
+                ],
+                answer: "A",
+                explanation: "AI换脸技术主要被用于冒充亲友进行视频通话诈骗，让受害人相信是真人进行视频对话，从而更容易上当。"
+            },
+            {
+                id: 3,
+                question: "接到声称是公安机关的AI换脸视频电话，要求配合调查并转账，应该怎么做？",
+                options: [
+                    "A. 立即按指示操作",
+                    "B. 挂断后拨打110核实",
+                    "C. 提供银行卡信息",
+                    "D. 听从对方指挥"
+                ],
+                answer: "B",
+                explanation: "公安机关不会通过视频要求转账，挂断后拨打110核实是唯一正确做法。任何要求转账的'警方'电话都是诈骗。"
+            },
+            {
+                id: 4,
+                question: "如何识别AI换脸视频的可疑迹象？",
+                options: [
+                    "A. 视频中人物眨眼频率异常",
+                    "B. 声音与口型不完全同步",
+                    "C. 背景模糊或闪烁",
+                    "D. 以上都是"
+                ],
+                answer: "D",
+                explanation: "AI换脸视频通常存在眨眼异常、口型不同步、背景问题等技术破绽。仔细观察这些细节可以帮助识别真伪。"
+            },
+            {
+                id: 5,
+                question: "AI伪音诈骗通常结合哪种手段增加可信度？",
+                options: [
+                    "A. 发送伪造的医院照片",
+                    "B. 使用亲友的真实声音片段",
+                    "C. 制造紧急情况氛围",
+                    "D. 以上都是"
+                ],
+                answer: "D",
+                explanation: "AI伪音诈骗会综合利用伪造资料、声音克隆和紧急氛围施压，多重手段结合让诈骗更具迷惑性。"
+            },
+            {
+                id: 6,
+                question: "发现可能遭遇AI换脸诈骗，第一步应该做什么？",
+                options: [
+                    "A. 删除聊天记录",
+                    "B. 立即报警",
+                    "C. 联系银行冻结账户",
+                    "D. 在社交媒体曝光"
+                ],
+                answer: "B",
+                explanation: "发现诈骗应立即报警，警方可及时采取止付等反制措施，同时获取专业指导。"
+            },
+            {
+                id: 7,
+                question: "AI换脸技术无法完全模仿的是？",
+                options: [
+                    "A. 面部表情细微变化",
+                    "B. 特定习惯性动作",
+                    "C. 实时互动反应",
+                    "D. 以上都是"
+                ],
+                answer: "D",
+                explanation: "当前AI换脸在微表情、习惯动作和实时互动方面仍有破绽，仔细观察这些细节有助于识别真伪。"
+            },
+            {
+                id: 8,
+                question: "防范AI换脸诈骗最有效的方法是？",
+                options: [
+                    "A. 不接任何视频电话",
+                    "B. 设定家庭暗语验证机制",
+                    "C. 关闭所有视频功能",
+                    "D. 不保存亲友照片"
+                ],
+                answer: "B",
+                explanation: "设定只有家人知道的暗语，是验证视频通话对方身份的有效方法。其他方法过于极端或不切实际。"
+            },
+            {
+                id: 9,
+                question: "接到AI换脸诈骗电话并已转账，应保留哪些证据？",
+                options: [
+                    "A. 通话记录和转账凭证",
+                    "B. 对方账号信息和聊天记录",
+                    "C. 视频通话录屏",
+                    "D. 以上都是"
+                ],
+                answer: "D",
+                explanation: "所有相关证据都应保留，包括通话记录、转账凭证、账号信息、聊天记录和录屏，以便警方调查和追回资金。"
+            },
+            {
+                id: 10,
+                question: "AI换脸诈骗通常针对哪个年龄段？",
+                options: [
+                    "A. 青少年",
+                    "B. 中老年人",
+                    "C. 所有年龄段",
+                    "D. 仅限企业主"
+                ],
+                answer: "C",
+                explanation: "所有年龄段都可能成为目标，但中老年人因不熟悉技术更易受骗。年轻人也可能因为轻信或缺乏警惕而上当。"
+            },
+            {
+                id: 11,
+                question: "银行对AI换脸诈骗转账是否有赔付义务？",
+                options: [
+                    "A. 银行必须全额赔付",
+                    "B. 视情况部分赔付",
+                    "C. 无赔付义务",
+                    "D. 仅赔付24小时内案件"
+                ],
+                answer: "C",
+                explanation: "因AI换脸诈骗属于用户主动转账，银行无赔付义务，防范是关键。务必提高警惕，核实身份再操作。"
+            },
+            {
+                id: 12,
+                question: "AI换脸技术的发展给社会带来的最大风险是？",
+                options: [
+                    "A. 娱乐产业受影响",
+                    "B. 信任体系被破坏",
+                    "C. 手机内存不足",
+                    "D. 网速变慢"
+                ],
+                answer: "B",
+                explanation: "最大的风险是破坏社会信任体系，让人与人之间难以建立信任，这对社会的危害远超过其他选项。"
+            }
+        ];
+
+        // 游戏状态
+        const gameState = {
+            currentLevel: 1,
+            correctAnswers: 0,
+            retryCount: 3,
+            selectedQuestions: [],
+            currentQuestionIndex: 0,
+            gameStarted: false,
+            currentQuestion: null,
+            answerSubmitted: false,
+            // 添加音效对象
+            soundEffects: {
+                begin: new Audio('begin.mp3'),
+                right: new Audio('right.mp3'),
+                wrong: new Audio('wrong.mp3'),
+                out: new Audio('out.mp3'),
+                success: new Audio('success.mp3')
+            }
+        };
+
+
+        // DOM元素
+        const startScreen = document.getElementById('start-screen');
+        const gameContainer = document.getElementById('game-container');
+        const startBtn = document.getElementById('start-game-btn');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackIcon = document.getElementById('feedback-icon');
+        const feedbackTitle = document.getElementById('feedback-title-text');
+        const correctAnswerText = document.getElementById('correct-answer-text');
+        const explanationText = document.getElementById('explanation-text');
+        const retryBtn = document.getElementById('retry-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const currentLevelEl = document.getElementById('current-level');
+        const correctCountEl = document.getElementById('correct-count');
+        const retryCountEl = document.getElementById('retry-count');
+        const levelNumberEl = document.getElementById('level-number');
+        const warriorEl = document.getElementById('warrior');
+        const treasureBoxEl = document.getElementById('treasure-box');
+        const scrollEl = document.getElementById('scroll');
+        const pathPoints = document.querySelectorAll('.path');
+        const pathLines = document.querySelectorAll('.path-line');
+
+        // 初始化游戏
+        function initGame() {
+            // 播放开始音效
+            gameState.soundEffects.begin.play();
+
+            // 随机选择5道不重复的题目
+            const shuffled = [...questionBank].sort(() => Math.random() - 0.5);
+            gameState.selectedQuestions = shuffled.slice(0, 5);
+            gameState.currentQuestionIndex = 0;
+            gameState.currentLevel = 1;
+            gameState.correctAnswers = 0;
+            gameState.retryCount = 3;
+            gameState.gameStarted = true;
+            gameState.answerSubmitted = false;
+            
+            // 更新UI
+            updateStats();
+            showQuestion();
+            updateWarriorPosition();
+            drawPathLines();
+            
+            // 显示游戏界面
+            startScreen.classList.add('hidden');
+            setTimeout(() => {
+                gameContainer.classList.add('visible');
+            }, 500);
+        }
+
+        // 显示当前题目
+        function showQuestion() {
+            if (gameState.currentQuestionIndex >= gameState.selectedQuestions.length) {
+                endGame();
+                return;
+            }
+            
+            gameState.currentQuestion = gameState.selectedQuestions[gameState.currentQuestionIndex];
+            questionText.textContent = gameState.currentQuestion.question;
+            levelNumberEl.textContent = gameState.currentLevel;
+            
+            // 清空选项容器
+            optionsContainer.innerHTML = '';
+            
+            // 创建选项按钮
+            gameState.currentQuestion.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.textContent = option;
+                button.addEventListener('click', () => checkAnswer(option.charAt(0)));
+                optionsContainer.appendChild(button);
+            });
+            
+            // 隐藏反馈区域
+            feedbackBox.classList.remove('show');
+            feedbackBox.classList.remove('correct');
+            gameState.answerSubmitted = false;
+            
+            // 隐藏下一步按钮
+            nextBtn.style.display = 'none';
+            retryBtn.style.display = 'block';
+        }
+
+        // 检查答案
+        function checkAnswer(selected) {
+            if (gameState.answerSubmitted) return;
+            
+            gameState.answerSubmitted = true;
+            const correct = gameState.currentQuestion.answer;
+            const isCorrect = selected === correct;
+            const optionBtns = document.querySelectorAll('.option-btn');
+            
+            // 禁用所有选项按钮
+            optionBtns.forEach(btn => {
+                btn.disabled = true;
+                
+                // 标记正确和错误选项
+                if (btn.textContent.charAt(0) === correct) {
+                    btn.classList.add('correct');
+                } else if (btn.textContent.charAt(0) === selected && !isCorrect) {
+                    btn.classList.add('wrong');
+                }
+            });
+            
+            if (isCorrect) {
+                // 回答正确
+                gameState.correctAnswers++;
+                gameState.currentLevel++;
+                gameState.currentQuestionIndex++;
+                
+                // 播放正确音效
+                gameState.soundEffects.right.play();
+                
+                // 显示正确反馈
+                feedbackIcon.textContent = "✅";
+                feedbackTitle.textContent = "回答正确！";
+                feedbackBox.classList.add('correct');
+                correctAnswerText.textContent = `正确答案：${gameState.currentQuestion.answer}`;
+                explanationText.textContent = gameState.currentQuestion.explanation;
+                feedbackBox.classList.add('show');
+                
+                // 更新统计
+                updateStats();
+                updateWarriorPosition();
+                
+                // 如果是最后一题，显示完成按钮
+                if (gameState.currentQuestionIndex >= gameState.selectedQuestions.length) {
+                    retryBtn.style.display = 'none';
+                    nextBtn.textContent = "领取宝藏";
+                    nextBtn.style.display = 'block';
+                } else {
+                    nextBtn.textContent = "下一关卡";
+                    nextBtn.style.display = 'block';
+                }
+            } else {
+                // 回答错误
+                gameState.retryCount--;
+                
+                // 播放错误音效
+                if (gameState.retryCount <= 0) {
+                    // 第三次答错，播放out音效
+                    gameState.soundEffects.out.play();
+                } else {
+                    // 普通错误，播放wrong音效
+                    gameState.soundEffects.wrong.play();
+                }
+                
+                // 显示错误反馈
+                feedbackIcon.textContent = "❌";
+                feedbackTitle.textContent = "回答错误";
+                feedbackBox.classList.remove('correct');
+                correctAnswerText.textContent = `正确答案：${gameState.currentQuestion.answer}`;
+                explanationText.textContent = gameState.currentQuestion.explanation;
+                feedbackBox.classList.add('show');
+                
+                // 更新统计
+                updateStats();
+                
+                // 如果重试次数用尽，显示游戏结束
+                if (gameState.retryCount <= 0) {
+                    setTimeout(() => {
+                        alert('重试次数用尽！游戏结束。点击确定重新开始游戏。');
+                        resetGame();
+                    }, 500);
+                }
+            }
+        }
+
+
+        // 重试当前题目
+        function retryCurrentQuestion() {
+            // 重置当前题目的状态
+            const optionBtns = document.querySelectorAll('.option-btn');
+            optionBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.classList.remove('correct');
+                btn.classList.remove('wrong');
+            });
+            
+            // 隐藏反馈区域
+            feedbackBox.classList.remove('show');
+            gameState.answerSubmitted = false;
+        }
+
+        // 更新统计显示
+        function updateStats() {
+            currentLevelEl.textContent = `${gameState.currentLevel}/5`;
+            correctCountEl.textContent = gameState.correctAnswers;
+            retryCountEl.textContent = gameState.retryCount;
+        }
+
+        // 更新勇士位置
+        function updateWarriorPosition() {
+            if (gameState.currentLevel <= 7) {
+                const pathIndex = gameState.currentLevel - 1;
+                if (pathIndex < pathPoints.length) {
+                    const pathPoint = pathPoints[pathIndex];
+                    const rect = pathPoint.getBoundingClientRect();
+                    const containerRect = document.querySelector('.map-container').getBoundingClientRect();
+                    
+                    const x = rect.left - containerRect.left + rect.width / 2;
+                    const y = rect.top - containerRect.top + rect.height / 2;
+                    
+                    warriorEl.style.left = `${x}px`;
+                    warriorEl.style.top = `${y}px`;
+                    
+                    // 为当前路径点添加高亮
+                    pathPoints.forEach((point, index) => {
+                        if (index === pathIndex) {
+                            point.classList.add('current-pos');
+                        } else if (index < pathIndex) {
+                            point.style.backgroundColor = '#00ffaa';
+                            point.style.boxShadow = '0 0 15px #00ffaa, inset 0 0 10px #00aa55';
+                        } else {
+                            point.classList.remove('current-pos');
+                        }
+                    });
+                }
+            }
+        }
+
+        // 绘制路径线
+        function drawPathLines() {
+            // 路径线已通过内联样式设置位置，这里只需要显示它们
+            pathLines.forEach(line => {
+                line.style.display = 'block';
+            });
+        }
+
+        // 结束游戏
+        function endGame() {
+            // 移动勇士到城堡位置
+            const castle = document.querySelector('.castle');
+            const castleRect = castle.getBoundingClientRect();
+            const containerRect = document.querySelector('.map-container').getBoundingClientRect();
+            
+            const x = castleRect.left - containerRect.left + castleRect.width / 2;
+            const y = castleRect.top - containerRect.top + castleRect.height / 2;
+            
+            warriorEl.style.left = `${x}px`;
+            warriorEl.style.top = `${y}px`;
+            
+            // 显示宝藏箱
+            setTimeout(() => {
+                treasureBoxEl.classList.add('open');
+                
+                // 播放通关音效
+                gameState.soundEffects.success.play();
+                
+                // 显示卷轴
+                setTimeout(() => {
+                    scrollEl.classList.add('open');                  
+                }, 2000);
+            }, 1000);
+            
+            // 隐藏下一步按钮
+            nextBtn.style.display = 'none';
+        }
+
+
+        // 重置游戏
+        function resetGame() {
+            // 停止所有音效
+            Object.values(gameState.soundEffects).forEach(sound => {
+                sound.pause();
+                sound.currentTime = 0;
+            });
+            
+            // 播放开始音效
+            gameState.soundEffects.begin.play();
+            
+            // 重置游戏状态
+            gameState.currentLevel = 1;
+            gameState.correctAnswers = 0;
+            gameState.retryCount = 3;
+            gameState.currentQuestionIndex = 0;
+            gameState.gameStarted = false;
+            gameState.answerSubmitted = false;
+            
+            // 重置勇士位置
+            const firstPath = pathPoints[0];
+            const firstRect = firstPath.getBoundingClientRect();
+            const containerRect = document.querySelector('.map-container').getBoundingClientRect();
+            
+            warriorEl.style.left = `${firstRect.left - containerRect.left + firstRect.width / 2}px`;
+            warriorEl.style.top = `${firstRect.top - containerRect.top + firstRect.height / 2}px`;
+            
+            // 重置路径点
+            pathPoints.forEach(point => {
+                point.style.backgroundColor = '#ffcc00';
+                point.style.boxShadow = '0 0 10px #ffcc00, inset 0 0 10px #ff9900';
+                point.classList.remove('current-pos');
+            });
+            
+            // 隐藏宝藏和卷轴
+            treasureBoxEl.classList.remove('open');
+            scrollEl.classList.remove('open');
+            
+            // 切换到初始界面
+            gameContainer.classList.remove('visible');
+            setTimeout(() => {
+                startScreen.classList.remove('hidden');
+            }, 500);
+            
+            // 重置UI
+            updateStats();
+            showQuestion();
+        }
+
+
+        // 创建像素效果
+        function createPixelEffect() {
+            const pixelEffect = document.getElementById('pixel-effect');
+            for (let i = 0; i < 100; i++) {
+                const pixel = document.createElement('div');
+                pixel.style.position = 'absolute';
+                pixel.style.width = '2px';
+                pixel.style.height = '2px';
+                pixel.style.backgroundColor = '#4a4aff';
+                pixel.style.left = `${Math.random() * 100}%`;
+                pixel.style.top = `${Math.random() * 100}%`;
+                pixel.style.opacity = Math.random() * 0.3;
+                pixel.style.animation = `fadeIn ${Math.random() * 5 + 2}s infinite alternate`;
+                pixelEffect.appendChild(pixel);
+            }
+        }
+
+        
+
+
+        // 事件监听
+        startBtn.addEventListener('click', initGame);
+
+        retryBtn.addEventListener('click', retryCurrentQuestion);
+
+        nextBtn.addEventListener('click', () => {
+            if (gameState.currentQuestionIndex >= gameState.selectedQuestions.length) {
+                endGame();
+            } else {
+                nextBtn.style.display = 'none';
+                showQuestion();
+            }
+        });
+
+        // 添加"再次闯关"按钮的点击事件
+        document.getElementById('restart-btn').addEventListener('click', resetGame);
+
+
+        // 初始化显示
+        updateStats();
+        createPixelEffect();
+        
+        // 初始勇士位置
+        if (pathPoints.length > 0) {
+            const firstPath = pathPoints[0];
+            const firstRect = firstPath.getBoundingClientRect();
+            const containerRect = document.querySelector('.map-container').getBoundingClientRect();
+            
+            warriorEl.style.left = `${firstRect.left - containerRect.left + firstRect.width / 2}px`;
+            warriorEl.style.top = `${firstRect.top - containerRect.top + firstRect.height / 2}px`;
+            pathPoints[0].classList.add('current-pos');
+        }
+    </script>
+</body>
+</html>
